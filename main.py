@@ -18,18 +18,24 @@ class PhoneResponse(BaseModel):
     country: str
     carrier: str
 
+
+def normalize_number(input_text: str) -> str:
+    input_text = input_text.strip().replace(" ", "").replace("-", "")
+
+    if input_text.startswith('+'):
+        return input_text
+
+    if input_text.startswith('8') and len(input_text) == 11:
+        return '+7' + input_text[1:]  # заменяем первую 8 на +7 (Россия)
+
+    # В остальных случаях просто добавляем +
+    return '+' + input_text
+
+
 @app.post("/format", response_model=PhoneResponse, summary="Форматировать номер телефона")
 async def format_phone(data: PhoneRequest):
-    phone = data.phone.strip()
-
-    # Если номер не начинается с "+" — обрабатываем как российский
-    if not phone.startswith('+'):
-        if phone.startswith('8'):
-            phone = '+7' + phone[1:]
-        elif phone.startswith('9'):
-            phone = '+7' + phone
-        else:
-            phone = '+' + phone
+    phone_text = data.phone.strip()
+    phone = normalize_number(phone_text)
 
     try:
         number = phonenumbers.parse(phone, None)
